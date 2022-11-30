@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  api:
+    container_name: api
+    build:
+      dockerfile: ./docker/api/Dockerfile
+      context: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    command: "uvicorn backend.api.app:main_api_app --host 0.0.0.0 --reload"
+    env_file:
+      - ./.env
+    depends_on:
+      - postgres
+    restart: on-failure
+
+  postgres:
+    container_name: postgres
+    image: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+#      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file:
+      - ./.env
+
+#  bot:
+
+volumes:
+  postgres_data:
