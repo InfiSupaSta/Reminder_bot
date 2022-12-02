@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.api.user.schemas import UserSchema
+from backend.api.user.user_schemas import UserSchema
 from backend.api.user.user_crud_repository import UserRepository
 
 user_router = APIRouter(
@@ -10,5 +10,5 @@ user_router = APIRouter(
 
 
 @user_router.post("/create")
-async def root(user: UserSchema):
+async def create_user(user: UserSchema):
     return UserRepository().create_user(user.telegram_id)

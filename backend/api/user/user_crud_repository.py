@@ -6,7 +6,7 @@ from starlette.responses import JSONResponse
 import sqlalchemy.orm
 
 from backend.database.session import session
-from backend.database.models.user.model import User
+from backend.database.models.user_model import User
 from backend.logger.create_logger import Logger
 
 logger = Logger('api_logger').create_logger()

@@ -24,11 +24,20 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-#      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    #      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     env_file:
       - ./.env
 
-#  bot:
+  bot:
+    container_name: bot
+    build:
+      context: .
+      dockerfile: ./docker/bot/Dockerfile
+    volumes:
+      - ./bot:/bot
+    command: 'python3 bot_main.py'
+    env_file:
+      - ./.env
 
 volumes:
   postgres_data:

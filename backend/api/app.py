@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 
 from backend.database.create_tables import create_metadata_tables
-from backend.api.favicon.router import favicon_router
-from backend.api.index.router import main_page_router
-from backend.api.user.router import user_router
-from backend.api.tasks.router import tasks_router
+from backend.api.favicon.favicon_router import favicon_router
+from backend.api.index.index_router import main_page_router
+from backend.api.user.user_router import user_router
+from backend.api.tasks.tasks_router import tasks_router
 from backend.logger.create_logger import Logger
 
 # setting logging config for whole app

@@ -1,3 +1,5 @@
+from typing import List
+
 import logging.config
 
 from backend.logger.exceptions import LoggerNotFoundException
@@ -24,13 +26,13 @@ class Logger:
     def _check_logger_exists(self) -> None:
         if self.logger_name not in config['loggers'].keys():
             error_message = f"Undefined logger name: >>> {self.logger_name} <<<. " \
-                            f"List of available loggers: {Logger.get_available_loggers()}"
+                            f"List of available loggers: {self.get_available_loggers()}"
             raise LoggerNotFoundException(error_message)
 
     @staticmethod
-    def set_config():
+    def set_config() -> None:
         logging.config.dictConfig(config)
 
     @staticmethod
-    def get_available_loggers():
+    def get_available_loggers() -> List[str]:
         return [logger for logger in config['loggers'].keys()]
