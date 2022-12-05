@@ -1,5 +1,3 @@
-from typing import Union, Tuple, Any
-
 from starlette import status
 from starlette.responses import JSONResponse
 
@@ -7,12 +5,14 @@ import sqlalchemy.orm
 
 from backend.database.session import session
 from backend.database.models.user_model import User
+from backend.database.models.task_model import Task
 from backend.logger.create_logger import Logger
+from backend.mixins import MakeExceptionMixin
 
 logger = Logger('api_logger').create_logger()
 
 
-class UserRepository:
+class UserRepository(MakeExceptionMixin):
 
     def __init__(self, _session=session):
         self.session: sqlalchemy.orm.Session = _session
@@ -41,15 +41,40 @@ class UserRepository:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={
                     'status': 'fail',
-                    'detail': error_message
+                    'detail': 'user creation failed',
+                    'exception': error_message
+                }
+            )
+
+    def delete_user(self, user_id: int):
+        try:
+            user = self.session.query(User).where(User.telegram_id == user_id).one()
+            self.session.delete(user)
+            self.session.commit()
+
+            return JSONResponse(
+                status_code=status.HTTP_204_NO_CONTENT,
+                content={
+                    'status': 'success',
+                    'detail': 'user data was successfully deleted',
+                    'user': user_id
+                }
+            )
+
+        except Exception as exception:
+            self.session.rollback()
+            error_message = self._make_exception_message(exception)
+            self.logger.error("Exception raised during user deletion. More info: %s", error_message)
+
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    'status': 'fail',
+                    'detail': 'user deletion failed',
+                    'exception': error_message
                 }
             )
 
     @staticmethod
-    def _make_exception_message(exception: Exception) -> Union[str, Tuple[Any]]:
-        try:
-            error_message: str = exception.args[0]
-            error_detail = error_message.split('DETAIL')[1]
-            return error_detail
-        except Exception:
-            return exception.args
+    def check_user_from_request_is_account_owner(*, user_id: int, request_user_id: int):
+        return user_id == request_user_id
