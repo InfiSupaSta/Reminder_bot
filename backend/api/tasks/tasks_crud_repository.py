@@ -20,11 +20,15 @@ class TaskRepository(MakeExceptionMixin):
         self.session: sqlalchemy.orm.Session = _session
         self.logger = logger
 
-    def create_task(self, user_telegram_id: int, description: str, is_regular_remind: bool = False):
+    def create_task(self, user_telegram_id: int,
+                    description: str,
+                    time_to_remind: int,
+                    is_regular_remind: bool = False):
         try:
+            from_epoch_to_datetime = datetime.fromtimestamp(time_to_remind)
             new_task = Task(user_id=user_telegram_id,
                             description=description,
-                            time_to_remind=datetime.now() + timedelta(minutes=5),
+                            time_to_remind=from_epoch_to_datetime,
                             is_regular_remind=is_regular_remind)
             self.session.add(new_task)
             self.session.commit()
@@ -71,13 +75,9 @@ class TaskRepository(MakeExceptionMixin):
                 }
             )
 
-    def _analyze_task_description(self, task_description: str):
-        ...
-
     @staticmethod
     def check_user_is_task_owner(request_user_id: int, task_user_id: int):
         return request_user_id == task_user_id
 
     def get_user_tasks(self, telegram_user_id: int):
         return self.session.query(Task).where(Task.user_id == telegram_user_id).all()
-

@@ -2,3 +2,4 @@ venv
 .env
 .idea
 backend/database/delete_later
+postgres_data

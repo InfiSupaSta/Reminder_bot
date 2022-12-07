@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter
 from starlette.requests import Request
 
@@ -15,7 +16,8 @@ tasks_router = APIRouter(
 async def create_task(task: TaskSchema):
     return TaskRepository().create_task(user_telegram_id=task.user_id,
                                         description=task.description,
-                                        is_regular_remind=task.is_regular_remind)
+                                        is_regular_remind=task.is_regular_remind,
+                                        time_to_remind=task.time_to_remind)
 
 
 @tasks_router.delete("/delete")

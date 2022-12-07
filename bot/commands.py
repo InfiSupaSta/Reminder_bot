@@ -6,8 +6,9 @@ bot_commands = [
     types.BotCommand("start", "Some intro information :)"),
     types.BotCommand("help", "How to start"),
     types.BotCommand("register", "First step to interact with bot"),
-    types.BotCommand("goodbye", "Delete all relation to you data from database"),
-    types.BotCommand("tasks", "Get list of your tasks")
+    types.BotCommand("tasks", "Get list of your tasks"),
+    types.BotCommand("goodbye", "Delete all data of you from database"),
+    types.BotCommand("am_i_still_registered", "Check if your data still in database"),
 ]
 
 
