@@ -72,16 +72,24 @@ async def delete_user(message: types.Message):
 tasks = []
 
 
-# TODO add am_i_still_registered command logic
 @dp.message_handler(commands=['am_i_still_registered'])
-async def get_help_command(message: types.Message):
-    is_registered = ...
-    return await message.answer(is_registered)
+async def check_user_still_registered(message: types.Message):
+    request_data = {
+        'telegram_id': message.from_user.id
+    }
+    request = ApiRequest(
+        url=ApiEndpoint.EXISTS_USER,
+        tag=Tag.USER,
+        method=ApiMethod.GET,
+        **request_data
+    )
+    response = await request.send()
+    return await message.answer(response)
 
 
 # TODO подумать как хранить таски
 @dp.message_handler(commands=['delete_task'])
-async def get_help_command(message: types.Message):
+async def delete_task(message: types.Message):
     global tasks
     try:
         tasks[0].cancel()

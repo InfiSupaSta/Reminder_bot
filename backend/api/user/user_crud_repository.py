@@ -78,3 +78,23 @@ class UserRepository(MakeExceptionMixin):
     @staticmethod
     def check_user_from_request_is_account_owner(*, user_id: int, request_user_id: int):
         return user_id == request_user_id
+
+    def check_user_exists(self, *, telegram_id: int):
+        user = self.session.query(User.telegram_id).where(User.telegram_id == telegram_id).scalar()
+
+        if user:
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    'status': 'success',
+                    'detail': f'user with id {telegram_id} exists'
+                }
+            )
+
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                'status': 'fail',
+                'detail': f'user with id {telegram_id} not registered'
+            }
+        )

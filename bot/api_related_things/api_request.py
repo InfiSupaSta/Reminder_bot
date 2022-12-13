@@ -5,6 +5,7 @@ from .api_methods import ApiMethod
 
 class ResponseMessage:
     response = {
+
         'user': {
             201: 'Registration successful! Now you can interact with bot and add tasks '
                  '(use /help for details).',
@@ -14,13 +15,16 @@ class ResponseMessage:
                  '- for deleting data: more likely data is already deleted, but you can use /am_i_still_registered '
                  'command for check.\n'
                  'If problem still exists, please open issue on github or send ticket to creator by using /ticket '
-                 'command.'
+                 'command.',
+            200: 'Yes, you are still registered!',
+            403: 'Nope, you are not registered.'
         },
-        # TODO: добавить описание ответов для взаимодействия с тасками
+
         'task': {
             201: 'Task successfully added.',
             400: 'Something going wrong, please try one more time.',
             422: 'API error: unprocessable entity.'
+
         }
     }
 

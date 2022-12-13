@@ -18,7 +18,8 @@ async def create_user(user: UserSchema):
 
 @user_router.delete("/delete")
 async def delete_user(user: UserSchema, request_user_id: int):
-    if UserRepository.check_user_from_request_is_account_owner(user_id=user.telegram_id, request_user_id=request_user_id):
+    if UserRepository.check_user_from_request_is_account_owner(user_id=user.telegram_id,
+                                                               request_user_id=request_user_id):
         return UserRepository().delete_user(user.telegram_id)
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -27,3 +28,8 @@ async def delete_user(user: UserSchema, request_user_id: int):
             'detail': 'Only owner have access to delete info.'
         }
     )
+
+
+@user_router.get("/me")
+async def create_user(user: UserSchema):
+    return UserRepository().check_user_exists(telegram_id=user.telegram_id)
