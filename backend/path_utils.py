@@ -1,8 +1,8 @@
-import os
 from pathlib import Path
 
 
 class PathUtils:
+    logs_folder_name = 'logs'
 
     @staticmethod
     def get_project_root() -> Path:
@@ -11,8 +11,7 @@ class PathUtils:
         return root_directory
 
     def get_project_logs_path(self):
-        path_to_logs = self.get_project_root().joinpath('logs')
-        if not os.path.exists(path_to_logs):
-            os.mkdir(path_to_logs)
+        path_to_logs = self.get_project_root().joinpath(self.logs_folder_name)
+        if not Path.exists(path_to_logs):
+            Path.mkdir(path_to_logs)
         return path_to_logs
-
