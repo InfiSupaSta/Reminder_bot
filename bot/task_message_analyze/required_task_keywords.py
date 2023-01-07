@@ -1,0 +1,2 @@
+REMIND = 'remind'
+TASK = 'task'
