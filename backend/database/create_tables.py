@@ -2,6 +2,11 @@ from backend.database.engine import engine
 from backend.database.base import Base
 from backend.logger.create_logger import Logger
 
+from backend.database.models.time_offset_model import TimeOffset
+from backend.database.models.task_model import Task
+from backend.database.models.user_model import User
+
+
 logger = Logger(logger_name='database_logger').create_logger()
 
 

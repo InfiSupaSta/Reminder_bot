@@ -30,6 +30,16 @@ async def delete_user(user: UserSchema, request_user_id: int):
     )
 
 
+@user_router.patch("/update")
+async def update_user(user: UserSchema, time_offset: str):
+    return UserRepository().update_user_offset(user_id=user.telegram_id, time_offset=time_offset)
+
+
 @user_router.get("/me")
 async def create_user(user: UserSchema):
     return UserRepository().check_user_exists(telegram_id=user.telegram_id)
+
+
+@user_router.get("/offset")
+async def get_user_offset(user: UserSchema):
+    return UserRepository().get_user_offset(user_id=user.telegram_id)

@@ -5,6 +5,7 @@ from starlette import status
 from starlette.responses import JSONResponse
 
 from backend.database.models.task_model import Task
+from backend.database.models.user_model import User
 from backend.database.session import session
 
 from backend.logger.create_logger import Logger
@@ -13,14 +14,14 @@ from backend.mixins import MakeExceptionMixin
 logger = Logger('api_logger').create_logger()
 
 
-# TODO: implement task repository
 class TaskRepository(MakeExceptionMixin):
 
     def __init__(self, _session=session):
         self.session: sqlalchemy.orm.Session = _session
         self.logger = logger
 
-    def create_task(self, user_telegram_id: int,
+    def create_task(self, *,
+                    user_telegram_id: int,
                     description: str,
                     time_to_remind: int,
                     is_regular_remind: bool = False):
@@ -54,17 +55,25 @@ class TaskRepository(MakeExceptionMixin):
                 }
             )
 
-    def delete_task(self, task_id: int):
+    def delete_task(self, task_name: str):
         try:
-            task_to_delete = self.session.query(Task).get(task_id)
+            task_to_delete = self.session.query(Task).where(Task.description == task_name).first()
             self.session.delete(task_to_delete)
             self.session.commit()
+
+            return JSONResponse(
+                status_code=status.HTTP_204_NO_CONTENT,
+                content={
+                    'status': 'success',
+                    'detail': f'task {task_name} deleted'
+                }
+            )
 
         except Exception as exception:
             self.session.rollback()
             error_message = self._make_exception_message(exception)
             self.logger.error("Exception raised during task deletion. Task id: %s. More info: %s",
-                              task_id,
+                              task_name,
                               error_message)
 
             return JSONResponse(
