@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import sqlalchemy.orm
+from sqlalchemy import and_
 from starlette import status
 from starlette.responses import JSONResponse
 
 from backend.database.models.task_model import Task
-from backend.database.models.user_model import User
 from backend.database.session import session
 
 from backend.logger.create_logger import Logger
@@ -90,3 +90,44 @@ class TaskRepository(MakeExceptionMixin):
 
     def get_user_tasks(self, telegram_user_id: int):
         return self.session.query(Task).where(Task.user_id == telegram_user_id).all()
+
+    def finish_user_task(self, telegram_user_id: int, task_description: str):
+
+        task_to_update = self.session.query(Task).where(
+            and_(
+                Task.user_id == telegram_user_id,
+                Task.description == task_description
+            )
+        ).scalar()
+
+        if not task_to_update:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={'detail': 'task not found'}
+            )
+
+        try:
+            task_to_update.is_done = True
+            self.session.add(task_to_update)
+            self.session.commit()
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    'status': 'success',
+                    'detail': f'task <{task_description}> of user <{telegram_user_id}> updated'
+                }
+            )
+
+        except Exception as exception:
+            self.session.rollback()
+            error_message = self._make_exception_message(exception)
+            self.logger.error("Exception raised during task update. User id: %s. More info: %s",
+                              telegram_user_id, error_message)
+
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    'status': 'fail',
+                    'detail': error_message
+                }
+            )
