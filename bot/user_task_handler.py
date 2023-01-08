@@ -28,8 +28,7 @@ class UserTask:
             await message.answer(f'Task created at (UTC): {datetime.datetime.now()}\n'
                                  f'Task ends at (UTC): {datetime.datetime.fromtimestamp(time_to_remind)}\n'
                                  f'Seconds to wait: {time_to_remind - time()}')
-
-            await asyncio.sleep(time_to_remind - int(datetime.datetime.now().timestamp()))
+            await asyncio.sleep(time_to_remind - time())
             await message.answer(description)
 
     @staticmethod

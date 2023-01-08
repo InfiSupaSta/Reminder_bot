@@ -1,4 +1,5 @@
 import logging
+import datetime
 
 from aiogram import types
 from aiogram.utils import executor
@@ -10,6 +11,7 @@ from api_related_info.api_request import ApiRequest
 from api_related_info.api_methods import ApiMethod
 from api_related_info.api_endpoints import ApiEndpoint
 from api_related_info.api_tags import Tag
+from task_message_analyze.patterns import EnumPattern
 from task_message_analyze.task_text_analyze import TaskTextAnalyze
 from user_task_handler import UserTask
 from keyboards.tasks_keyboard import InlineTaskKeyboard
@@ -268,11 +270,16 @@ async def handle_user_message(message: types.Message,
             method=ApiMethod.GET,
             **{'telegram_id': request_user_id,
                'pure_api_response': True}  # for getting a response(JSON, or int in this case) from API and
-        )                                  # not the data based on status code of response. More details in
-                                           # ./api_related_things/api_request.py module
+                                           # not the data based on status code of response. More details in
+        )                                  # ./api_related_things/api_request.py module
 
-        if not task_data.get('is_regular_remind'):
-            task_data['time_to_remind'] -= int(await offset_request.send())
+        offset = int(await offset_request.send())
+        if task_data.get('is_regular_remind') is False and task_text_analyzer.get_message_pattern() not in [EnumPattern.IN, EnumPattern.EVERY]:
+            task_data['time_to_remind'] -= offset
+
+        if task_text_analyzer.pattern == EnumPattern.TOMORROW:
+            if datetime.datetime.now().hour + offset > 24:
+                task_data['time_to_remind'] += 24 * 60 * 60
 
         create_task_request = ApiRequest(
             url=ApiEndpoint.CREATE_TASK,
@@ -291,7 +298,7 @@ async def handle_user_message(message: types.Message,
                                             user_tasks=request_user_tasks)
         await message.answer(response)
         await UserTask.add_user_task_to_loop(**task_data, message=message)
-
+        request_user_tasks.pop(task_data.get('description'))
     else:
         await message.answer('Unrecognized command, use /help  or side menu for info.')
 
