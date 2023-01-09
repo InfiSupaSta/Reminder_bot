@@ -274,10 +274,22 @@ async def handle_user_message(message: types.Message,
         )                                  # ./api_related_things/api_request.py module
 
         offset = int(await offset_request.send())
-        if task_data.get('is_regular_remind') is False and task_text_analyzer.get_message_pattern() not in [EnumPattern.IN, EnumPattern.EVERY]:
+        if task_data.get('is_regular_remind') is False and task_text_analyzer.pattern not in [EnumPattern.IN, EnumPattern.EVERY]:
+            # We dont need to do anything else to remind time
+            # if task is regular or user is not manually gave task time.
+            # Otherwise user offset must be handled.
+
             task_data['time_to_remind'] -= offset
 
         if task_text_analyzer.pattern == EnumPattern.TOMORROW:
+            # Due to date calculation for this pattern based on
+            # UTC time, we must sure that final time to remind must be
+            # formed on user timezone.
+
+            # For example: user offset is +7 hours and his current time is 0:30 of 10 january.
+            # User planned to make a task with tomorrow pattern. Obvious it should ends 11 january.
+            # But for python program task init time will be 17:30 of 9 january - this is UTC time,
+            # so without check below final date will be 10 january - this is wrong.
             if datetime.datetime.now().hour + offset > 24:
                 task_data['time_to_remind'] += 24 * 60 * 60
 
