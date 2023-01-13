@@ -9,5 +9,5 @@ class TaskPatternExample:
 
     @property
     def available_patterns(self):
-        examples = '\n'.join(example for pattern, example in self.examples_hashmap.items())
+        examples = '\n'.join(example for example in self.examples_hashmap.values())
         return examples
