@@ -11,6 +11,8 @@ from api_related_info.api_request import ApiRequest
 from api_related_info.api_methods import ApiMethod
 from api_related_info.api_endpoints import ApiEndpoint
 from api_related_info.api_tags import Tag
+from redis_helpers.helpers import RedisHelper
+from redis_helpers.global_constants import OFFSET_SUFFIX
 from task_message_analyze.patterns import EnumPattern
 from task_message_analyze.task_text_analyze import TaskTextAnalyze
 from user_task_handler import UserTask
@@ -85,7 +87,6 @@ async def register_user(message: types.Message):
 
 @dp.message_handler(commands=['goodbye'])
 async def delete_user(message: types.Message):
-
     """
     Command to delete all user related info from database.
     """
@@ -110,7 +111,6 @@ async def delete_user(message: types.Message):
 
 @dp.message_handler(commands=['am_i_still_registered'])
 async def check_user_still_registered_command(message: types.Message):
-
     """
     Check if user is still registered and user related info exists.
     """
@@ -130,7 +130,6 @@ async def check_user_still_registered_command(message: types.Message):
 
 @dp.message_handler(regexp=r'^[+-]{1}[0-9]{1,2}[.,:]?(30|45)?$', state=OffsetState.offset)
 async def process_offset(message: types.Message, state: FSMContext):
-
     """
     This function will handle user input when app state is set to OffsetState:offset.
     All available states can be found in ./states/*_state.py files.
@@ -140,8 +139,13 @@ async def process_offset(message: types.Message, state: FSMContext):
     async with state.proxy():
         data_for_validation = TimeOffsetValidator(offset=message.text)
         if data_for_validation.is_valid():
-            query_params = {'time_offset': message.text}
-            body = {'telegram_id': message.from_user.id}
+            user_id = message.from_user.id
+            offset = message.text
+
+            RedisHelper().set_user_offset(user_id=user_id, offset=offset)
+
+            query_params = {'time_offset': offset}
+            body = {'telegram_id': user_id}
             request = ApiRequest(
                 url=ApiEndpoint.UPDATE_USER,
                 method=ApiMethod.PATCH,
@@ -150,7 +154,8 @@ async def process_offset(message: types.Message, state: FSMContext):
                 **body
             )
             await request.send()
-            msg = f'Offset {message.text} successfully set.'
+
+            msg = f'Offset {offset} successfully set.'
             await message.answer(msg)
         else:
             msg = 'Wrong input, please use command /set_user_time_offset again.\n' \
@@ -171,7 +176,6 @@ async def set_user_time_offset(message: types.Message):
 
 @dp.message_handler(commands=['tasks'])
 async def get_tasks_command(message: types.Message, tasks: UserTasksContainer = container):
-
     """
     Function to get existing user tasks. It will be formed into inline buttons.
     Pressing onto them will delete this tasks from list.
@@ -195,7 +199,6 @@ async def get_tasks_command(message: types.Message, tasks: UserTasksContainer = 
 @dp.callback_query_handler(lambda callback: callback.data.startswith(CALLBACK_DELETE_TASK_PREFIX))
 async def delete_task_callback(callback: types.CallbackQuery,
                                tasks: UserTasksContainer = container):
-
     """
     Callback that will be called when button in /tasks command is pressed.
     """
@@ -235,7 +238,6 @@ async def delete_task_callback(callback: types.CallbackQuery,
 async def handle_user_message(message: types.Message,
                               state: FSMContext,
                               tasks_container: UserTasksContainer = container):
-
     """
     Main function to handle user messages that do not match commands(except /cancel,
     that will work only of FSM state is not None and user want to abandon current action).
@@ -264,17 +266,31 @@ async def handle_user_message(message: types.Message,
             return await message.answer(info_message)
 
         request_user_id = message.from_user.id
-        offset_request = ApiRequest(
-            url=ApiEndpoint.OFFSET_USER,
-            tag=Tag.USER,
-            method=ApiMethod.GET,
-            **{'telegram_id': request_user_id,
-               'pure_api_response': True}  # for getting a response(JSON, or int in this case) from API and
-                                           # not the data based on status code of response. More details in
-        )                                  # ./api_related_things/api_request.py module
 
-        offset = int(await offset_request.send())
-        if task_data.get('is_regular_remind') is False and task_text_analyzer.pattern not in [EnumPattern.IN, EnumPattern.EVERY]:
+        redis_client = RedisHelper()
+        user_key_with_offset = f'{request_user_id}{OFFSET_SUFFIX}'
+        if redis_client.check_key_exists(key=user_key_with_offset):
+            offset = redis_client.get_key_value(key=user_key_with_offset)
+        else:
+            request_body = {
+                'telegram_id': request_user_id,
+                'pure_api_response': True  # for getting a response(JSON, or int in this case) from API and
+                                           # not the data based on status code of response. More details in
+                                           # ./api_related_things/api_request.py module
+            }
+            offset_request = ApiRequest(
+                url=ApiEndpoint.OFFSET_USER,
+                tag=Tag.USER,
+                method=ApiMethod.GET,
+                **request_body
+            )
+            offset = await offset_request.send()
+            redis_client.set_user_offset(user_id=request_user_id, offset=offset)
+
+        offset = int(offset)
+
+        if task_data.get('is_regular_remind') is False and task_text_analyzer.pattern not in [EnumPattern.IN,
+                                                                                              EnumPattern.EVERY]:
             # We dont need to do anything else to remind time
             # if task is regular or user is not manually gave task time.
             # Otherwise user offset must be handled.

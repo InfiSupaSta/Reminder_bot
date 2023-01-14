@@ -42,53 +42,6 @@ def catch_exceptions(function):
     return wrapper
 
 
-class ApiRequestDeprecated:
-
-    def __init__(self, *, url: str, method: str, tag: str, params: dict = None, **data):
-        self.url = url
-        self.method = method
-        self.data = data
-        self.tag = tag
-        self.params = params
-
-    async def _get_request(self, session: aiohttp.ClientSession):
-        async with session.get(self.url, json=self.data, params=self.params) as response:
-            return await self._make_response(response)
-
-    async def _post_request(self, session: aiohttp.ClientSession):
-        async with session.post(self.url, json=self.data, params=self.params) as response:
-            return await self._make_response(response)
-
-    async def _patch_request(self, session: aiohttp.ClientSession):
-        async with session.patch(self.url, json=self.data, params=self.params) as response:
-            return await self._make_response(response)
-
-    async def _delete_request(self, session: aiohttp.ClientSession):
-        async with session.delete(self.url, json=self.data, params=self.params) as response:
-            return await self._make_response(response)
-
-    async def _make_response(self, response):
-        if self.data.get('pure_api_response') is True:
-            return await response.text()
-        return ResponseMessage.response[self.tag][response.status]
-
-    @catch_exceptions
-    async def send(self):
-        async with aiohttp.ClientSession() as session:
-
-            if self.method == ApiMethod.GET:
-                return await self._get_request(session)
-
-            elif self.method == ApiMethod.POST:
-                return await self._post_request(session)
-
-            elif self.method == ApiMethod.DELETE:
-                return await self._delete_request(session)
-
-            elif self.method == ApiMethod.PATCH:
-                return await self._patch_request(session)
-
-
 class ApiRequest:
     """
     Class for making an API call, available arguments can be found in:
