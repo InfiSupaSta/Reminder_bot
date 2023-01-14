@@ -22,7 +22,7 @@ Without using both user input will be pointed like unrecognized command.
 Its case insensitive - so there is no difference between
 **reMInD** and **ReMind**.
 
-At this moment 5 patterns for tasks creating available, the looks like:
+At this moment 5 patterns for tasks creating available and they looks like:
 > Remind every 5 secs task do not be lazy  
 > Remind every 2 hours task ...  
 > Remind every 45 mins task ...
