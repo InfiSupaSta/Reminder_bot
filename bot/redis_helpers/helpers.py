@@ -24,7 +24,8 @@ class RedisHelper:
 
     def set_user_offset(self, *, user_id: Union[int, str], offset: str) -> None:
         user_ofsset_key = f'{user_id}{OFFSET_SUFFIX}'
-        self.client.setex(user_ofsset_key, DAY_TTL, offset)
+        offset_from_hours_to_seconds = float(offset) * 60 * 60
+        self.client.setex(user_ofsset_key, DAY_TTL, offset_from_hours_to_seconds)
 
     def get_key_value(self, *, key: str) -> bytes:
         return self.client.get(key)
