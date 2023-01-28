@@ -1,6 +1,9 @@
+import logging
+import typing
+
 import aiohttp
 
-from .api_methods import ApiMethod
+logger = logging.getLogger(__file__)
 
 
 class ResponseMessage:
@@ -29,14 +32,18 @@ class ResponseMessage:
     }
 
 
-def catch_exceptions(function):
+def catch_exceptions(function: typing.Callable[[typing.Any], typing.Awaitable[typing.Any]]):
+
+    """
+    Simple decorator for catching exceptions.
+    """
+
     async def wrapper(*args, **kwargs):
         try:
             return await function(*args, **kwargs)
         except Exception as exception:
-            # TODO: тут нужен логгинг
-            # logger.error(f'Exception raised during API Request. Info: {exception}'
-            message = f'Something going wrong. Please try again later or contact to developer. Exc: {str(exception)}'
+            logger.error(f'Exception raised during API Request. Info: {exception.args}')
+            message = f'Something going wrong. Please try again later or contact to developer.'
             return message
 
     return wrapper
@@ -85,6 +92,8 @@ class ApiRequest:
     async def _handle_response(self, response):
         if self.data.get('pure_api_response') is True:
             return await response.text()
+        if self.data.get('status_code_only') is True:
+            return response.status
         return ResponseMessage.response[self.tag][response.status]
 
     @catch_exceptions

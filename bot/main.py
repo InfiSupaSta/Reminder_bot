@@ -1,12 +1,15 @@
 import logging
 import datetime
+import pathlib
+import http
 
 from aiogram import types
-from aiogram.utils import executor
 from aiogram.dispatcher import FSMContext
 
+from helpers.check_user_registered import check_user_registered
 from user_tasks_container.tasks_container import UserTasksContainer
 from bot_init import dp
+from on_startup import on_startup
 from api_related_info.api_request import ApiRequest
 from api_related_info.api_methods import ApiMethod
 from api_related_info.api_endpoints import ApiEndpoint
@@ -27,11 +30,11 @@ from states.offset_state import OffsetState, TimeOffsetValidator
 from states.helper import Helper
 from examples.tasks_pattern_examples import TaskPatternExample
 
+BASE_DIR = pathlib.Path(__file__).parent.parent
+
 container = UserTasksContainer()
 
-# TODO сделать логгер для бота
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger(__file__)
 
 
 @dp.message_handler(commands=['start'])
@@ -115,16 +118,7 @@ async def check_user_still_registered_command(message: types.Message):
     Check if user is still registered and user related info exists.
     """
 
-    request_data = {
-        'telegram_id': message.from_user.id
-    }
-    request = ApiRequest(
-        url=ApiEndpoint.EXISTS_USER,
-        tag=Tag.USER,
-        method=ApiMethod.GET,
-        **request_data
-    )
-    response = await request.send()
+    status_code, response = await check_user_registered(user_id=message.from_user.id)
     return await message.answer(response)
 
 
@@ -228,10 +222,9 @@ async def delete_task_callback(callback: types.CallbackQuery,
         )
         await callback.message.edit_text(text=callback.message.text,
                                          reply_markup=types.InlineKeyboardMarkup())
-    except Exception as exc:
-        # TODO добавить логгер для бота
-        logger.error(exc)
-        await callback.message.answer(f'Something going wrong. Info: {exc}')
+    except Exception as exception:
+        logger.error(str(exception))
+        await callback.message.answer(f'Something going wrong. Info: {exception}')
 
 
 @dp.message_handler(state='*')
@@ -255,6 +248,11 @@ async def handle_user_message(message: types.Message,
         return await message.answer(info_message)
 
     if message.text.lower().startswith(TASK_PREFIX):
+
+        status_code, _ = await check_user_registered(user_id=message.from_user.id)
+        if status_code != http.HTTPStatus.OK:
+            error_message = 'Please register (/register command) before any actions with task creating.'
+            return await message.answer(error_message)
 
         try:
             task_text_analyzer = TaskTextAnalyze(user_message=message.text)
@@ -287,10 +285,9 @@ async def handle_user_message(message: types.Message,
             offset = await offset_request.send()
             redis_client.set_user_offset(user_id=request_user_id, offset=offset)
 
-        offset = int(offset)
+        offset = float(offset)
 
-        if task_data.get('is_regular_remind') is False and task_text_analyzer.pattern not in [EnumPattern.IN,
-                                                                                              EnumPattern.EVERY]:
+        if task_text_analyzer.pattern not in [EnumPattern.IN, EnumPattern.EVERY]:
             # We dont need to do anything else to remind time
             # if task is regular or user is not manually gave task time.
             # Otherwise user offset must be handled.
@@ -331,10 +328,30 @@ async def handle_user_message(message: types.Message,
         await message.answer('Unrecognized command, use /help  or side menu for info.')
 
 
-# TODO добавить точку входа для старта работы бота
+async def main():
+    pathlib.Path(__file__).parent.joinpath('bot_errors.log').touch()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='[%(levelname)s] :: %(asctime)s :: %(filename)s(%(lineno)s) :: %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(
+                # TODO fix path to logs folder
+                pathlib.Path(__file__).parent.joinpath('bot_errors.log'),
+                # BASE_DIR.joinpath('logs').joinpath('bot_errors.log')
+            )
+        ]
+    )
+
+    await on_startup(dp)
+    await dp.start_polling()
+
 
 # TODO добавить функционал для воссоздания существующих
 #  задач в бд в случае непредвиденной остановки работы и перезапуска сервиса
 
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    import asyncio
+
+    asyncio.run(main())
