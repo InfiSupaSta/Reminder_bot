@@ -13,7 +13,6 @@ class Task(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("user.telegram_id"))
     user = relationship('User', back_populates='tasks')
-    # TODO check if created_at timestamp working correctly
     created_at = Column(DateTime, default=datetime.now())
     time_to_remind = Column(DateTime)
     is_regular_remind = Column(Boolean, default=False)

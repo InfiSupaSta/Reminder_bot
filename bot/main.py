@@ -1,40 +1,51 @@
-import logging
+import asyncio
 import datetime
-import pathlib
 import http
+import logging
 
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 
-from helpers.check_user_registered import check_user_registered
-from user_tasks_container.tasks_container import UserTasksContainer
-from bot_init import dp
-from on_startup import on_startup
-from api_related_info.api_request import ApiRequest
-from api_related_info.api_methods import ApiMethod
 from api_related_info.api_endpoints import ApiEndpoint
+from api_related_info.api_methods import ApiMethod
+from api_related_info.api_request import ApiRequest
 from api_related_info.api_tags import Tag
-from redis_helpers.helpers import RedisHelper
-from redis_helpers.global_constants import OFFSET_SUFFIX
-from task_message_analyze.patterns import EnumPattern
-from task_message_analyze.task_text_analyze import TaskTextAnalyze
-from user_task_handler import UserTask
+from bot_init import dp
+from examples.tasks_pattern_examples import TaskPatternExample
+from global_constants import (
+    CALLBACK_DELETE_TASK_PREFIX,
+    SEPARATOR,
+    TASK_PREFIX,
+    BASE_DIR
+)
+from helpers.check_user_registered import check_user_registered
 from keyboards.tasks_keyboard import InlineTaskKeyboard
+from on_startup import on_startup
+from redis_helpers.global_constants import OFFSET_SUFFIX
+from redis_helpers.helpers import RedisHelper
+from states.helper import Helper
+from states.offset_state import OffsetState, TimeOffsetValidator
 from task_message_analyze.exceptions import (PatternNotFoundException,
                                              UnitOfTimeDoesNotFoundException,
                                              TimeToRemindDoesNotSetException)
-from global_constants import (CALLBACK_DELETE_TASK_PREFIX,
-                              SEPARATOR,
-                              TASK_PREFIX)
-from states.offset_state import OffsetState, TimeOffsetValidator
-from states.helper import Helper
-from examples.tasks_pattern_examples import TaskPatternExample
+from task_message_analyze.patterns import EnumPattern
+from task_message_analyze.task_text_analyze import TaskTextAnalyze
+from user_task_handler import UserTask
+from user_tasks_container.tasks_container import UserTasksContainer
 
-BASE_DIR = pathlib.Path(__file__).parent.parent
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] :: %(asctime)s :: %(filename)s(%(lineno)s) :: %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(
+            BASE_DIR.joinpath('logs').joinpath('bot_errors.log')
+        )
+    ]
+)
+logger = logging.getLogger(__file__)
 
 container = UserTasksContainer()
-
-logger = logging.getLogger(__file__)
 
 
 @dp.message_handler(commands=['start'])
@@ -60,7 +71,9 @@ async def get_help_command(message: types.Message):
 
 @dp.message_handler(commands=['examples'])
 async def get_examples_command(message: types.Message):
-    return await message.answer(TaskPatternExample().available_patterns)
+    return await message.answer(
+        TaskPatternExample().available_patterns
+    )
 
 
 @dp.message_handler(commands=['cancel'])
@@ -70,13 +83,13 @@ async def cancel_command():
     This command will be used to set current state
     to None and stop conversation with user.
     """
+    pass
 
 
 @dp.message_handler(commands=['register'])
 async def register_user(message: types.Message):
-    message_user_id = message.from_user.id
     request_data = {
-        'telegram_id': message_user_id
+        'telegram_id': message.from_user.id
     }
     request = ApiRequest(
         url=ApiEndpoint.CREATE_USER,
@@ -118,7 +131,9 @@ async def check_user_still_registered_command(message: types.Message):
     Check if user is still registered and user related info exists.
     """
 
-    status_code, response = await check_user_registered(user_id=message.from_user.id)
+    status_code, response = await check_user_registered(
+        user_id=message.from_user.id
+    )
     return await message.answer(response)
 
 
@@ -156,7 +171,7 @@ async def process_offset(message: types.Message, state: FSMContext):
                   f'More info: {Helper.action.get(await state.get_state())}'
             await message.answer(msg)
 
-    await state.finish()
+    await state.set_state(state=None)
 
 
 @dp.message_handler(commands=['set_user_time_offset'], state=None)
@@ -176,7 +191,9 @@ async def get_tasks_command(message: types.Message, tasks: UserTasksContainer = 
     """
 
     user_telegram_id: int = message.from_user.id
-    user_tasks: dict = tasks.get_user_tasks(user_telegram_id=user_telegram_id)
+    user_tasks: dict = tasks.get_user_tasks(
+        user_telegram_id=user_telegram_id
+    )
 
     if not user_tasks:
         info_message = 'You do not have active tasks at this moment. Lets make some!\n' \
@@ -185,14 +202,16 @@ async def get_tasks_command(message: types.Message, tasks: UserTasksContainer = 
 
     keyboard = InlineTaskKeyboard()
     keyboard.set_buttons_per_row(row_width=1)
-    keyboard.add_buttons_for_every_user_task(user_tasks=user_tasks, user_telegram_id=user_telegram_id)
+    keyboard.add_buttons_for_every_user_task(
+        user_tasks=user_tasks,
+        user_telegram_id=user_telegram_id
+    )
 
     await message.reply(text='Here is your tasks!', reply_markup=keyboard.get_keyboard())
 
 
 @dp.callback_query_handler(lambda callback: callback.data.startswith(CALLBACK_DELETE_TASK_PREFIX))
-async def delete_task_callback(callback: types.CallbackQuery,
-                               tasks: UserTasksContainer = container):
+async def delete_task_callback(callback: types.CallbackQuery, tasks: UserTasksContainer = container):
     """
     Callback that will be called when button in /tasks command is pressed.
     """
@@ -203,7 +222,6 @@ async def delete_task_callback(callback: types.CallbackQuery,
 
     try:
         user_task.cancel()
-        user_tasks.pop(task_name)
         request = ApiRequest(
             url=ApiEndpoint.DELETE_TASK,
             tag=Tag.TASK,
@@ -215,16 +233,18 @@ async def delete_task_callback(callback: types.CallbackQuery,
             }
         )
         response = await request.send()
-        info_message = f'{response}\n Task description: "{task_name}"'
+        info_message = f'{response}\nTask description: "{task_name}"'
         await callback.answer(
             text=info_message,
             show_alert=True
         )
-        await callback.message.edit_text(text=callback.message.text,
-                                         reply_markup=types.InlineKeyboardMarkup())
+        await callback.message.edit_text(
+            text=callback.message.text,
+            reply_markup=types.InlineKeyboardMarkup()
+        )
     except Exception as exception:
-        logger.error(str(exception))
-        await callback.message.answer(f'Something going wrong. Info: {exception}')
+        logger.error(f'Raised during task deletion by user request :: {str(exception)}')
+        await callback.message.answer(f'Something going wrong.')
 
 
 @dp.message_handler(state='*')
@@ -273,8 +293,8 @@ async def handle_user_message(message: types.Message,
             request_body = {
                 'telegram_id': request_user_id,
                 'pure_api_response': True  # for getting a response(JSON, or int in this case) from API and
-                                           # not the data based on status code of response. More details in
-                                           # ./api_related_things/api_request.py module
+                # not the data based on status code of response. More details in
+                # ./api_related_things/api_request.py module
             }
             offset_request = ApiRequest(
                 url=ApiEndpoint.OFFSET_USER,
@@ -319,31 +339,23 @@ async def handle_user_message(message: types.Message,
         if task_data.get('description') in request_user_tasks:
             info_message = f'Task with name "{task_data.get("description")}" already exists.'
             return await message.answer(info_message)
-        UserTask.add_user_task_to_container(task_description=task_data.get('description'),
-                                            user_tasks=request_user_tasks)
+
+        UserTask.add_user_task_to_container(
+            task_description=task_data.get('description'),
+            user_tasks=request_user_tasks
+        )
+
         await message.answer(response)
-        await UserTask.add_user_task_to_loop(**task_data, message=message)
+        await UserTask.handle_user_task(
+            message=message,
+            **task_data
+        )
         request_user_tasks.pop(task_data.get('description'))
     else:
         await message.answer('Unrecognized command, use /help  or side menu for info.')
 
 
 async def main():
-    pathlib.Path(__file__).parent.joinpath('bot_errors.log').touch()
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[%(levelname)s] :: %(asctime)s :: %(filename)s(%(lineno)s) :: %(message)s',
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler(
-                # TODO fix path to logs folder
-                pathlib.Path(__file__).parent.joinpath('bot_errors.log'),
-                # BASE_DIR.joinpath('logs').joinpath('bot_errors.log')
-            )
-        ]
-    )
-
     await on_startup(dp)
     await dp.start_polling()
 
@@ -352,6 +364,6 @@ async def main():
 #  задач в бд в случае непредвиденной остановки работы и перезапуска сервиса
 
 if __name__ == '__main__':
-    import asyncio
-
-    asyncio.run(main())
+    asyncio.run(
+        main()
+    )
