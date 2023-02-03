@@ -44,7 +44,7 @@ async def check_user_registered(*, user_id: int) -> typing.Tuple[int, str]:
     Currently, two responses can be received:\n\n
 
         (200, 'Yes, you are registered.')  # if user registered\n
-        (403, 'Nope, you are not registered.')  # otherwise
+        (401, 'Nope, you are not registered.')  # otherwise
 
     """
 
@@ -62,4 +62,4 @@ async def check_user_registered(*, user_id: int) -> typing.Tuple[int, str]:
     status = await request.send()
     if status == 200:
         return 200, 'Yes, you are registered.'
-    return 403, 'Nope, you are not registered.'
+    return 401, 'Nope, you are not registered.'

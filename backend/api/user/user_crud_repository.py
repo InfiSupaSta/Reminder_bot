@@ -120,7 +120,7 @@ class UserRepository(MakeExceptionMixin):
             )
 
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             content={
                 'status': 'fail',
                 'detail': f'user with id {telegram_id} not registered'
