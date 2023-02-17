@@ -7,7 +7,7 @@ class TaskPatternExample:
         'IN': 'Remind in 2.5 hours task something cool'
     }
 
-    @property
-    def available_patterns(self):
-        examples = '\n'.join(example for example in self.examples_hashmap.values())
+    @classmethod
+    def available_patterns(cls):
+        examples = '\n'.join(example for example in cls.examples_hashmap.values())
         return examples

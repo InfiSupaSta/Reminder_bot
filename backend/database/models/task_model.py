@@ -6,6 +6,10 @@ from backend.database.base import Base
 
 from sqlalchemy import Column, Integer, DateTime, Boolean, Text, ForeignKey
 
+__all__ = [
+    'Task',
+]
+
 
 class Task(Base):
     __tablename__ = 'task'

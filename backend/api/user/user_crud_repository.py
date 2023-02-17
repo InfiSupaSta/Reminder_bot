@@ -1,14 +1,14 @@
+import sqlalchemy.orm
 from starlette import status
 from starlette.responses import JSONResponse
 
-import sqlalchemy.orm
-
+from backend.database.models import (
+    User,
+    TimeOffset,
+)
 from backend.database.session import session
-from backend.database.models.user_model import User
-from backend.database.models.time_offset_model import TimeOffset
 from backend.logger.create_logger import Logger
 from backend.mixins import MakeExceptionMixin
-
 
 
 class UserRepository(MakeExceptionMixin):

@@ -5,6 +5,10 @@ import logging.config
 from backend.logger.exceptions import LoggerNotFoundException
 from backend.logger.config import config
 
+__all__ = [
+    'Logger',
+]
+
 
 class Logger:
 

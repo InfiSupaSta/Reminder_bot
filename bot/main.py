@@ -72,7 +72,7 @@ async def get_help_command(message: types.Message):
 @dp.message_handler(commands=['examples'])
 async def get_examples_command(message: types.Message):
     return await message.answer(
-        TaskPatternExample().available_patterns
+        TaskPatternExample.available_patterns()
     )
 
 

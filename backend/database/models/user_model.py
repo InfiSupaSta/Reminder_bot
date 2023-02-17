@@ -7,6 +7,10 @@ from sqlalchemy import Column, Integer, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 
+__all__ = [
+    'User',
+]
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -14,7 +18,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     telegram_id = Column(Integer, unique=True)
     joined_at = Column(DateTime, default=datetime.now())
-    is_active = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
 
     tasks = relationship('Task',
                          cascade="all, delete",
