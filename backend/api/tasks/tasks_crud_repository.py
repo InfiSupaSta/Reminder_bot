@@ -5,10 +5,9 @@ from sqlalchemy import and_
 from starlette import status
 from starlette.responses import JSONResponse
 
-from backend.database.models.task_model import Task
-from backend.database.session import session
-
-from backend.logger.create_logger import Logger
+from backend.database.models import Task
+from backend.database import session
+from backend.logger import Logger
 from backend.mixins import MakeExceptionMixin
 
 logger = Logger('api_logger').create_logger()

@@ -5,6 +5,10 @@ from backend.database.base import Base
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
+__all__ = [
+    'TimeOffset',
+]
+
 
 class TimeOffset(Base):
     __tablename__ = 'time_offset'
