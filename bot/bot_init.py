@@ -9,5 +9,10 @@ asyncio.set_event_loop(loop)
 
 storage = MemoryStorage()
 
+if not os.getenv('BOT_TOKEN'):
+    raise ValueError(
+        "BOT_TOKEN must be set in .env file before starting bot."
+    )
+
 bot = Bot(token=os.environ.get("BOT_TOKEN"))
 dp = Dispatcher(bot, storage=storage)

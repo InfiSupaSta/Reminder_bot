@@ -16,7 +16,7 @@ from global_constants import (
     CALLBACK_DELETE_TASK_PREFIX,
     SEPARATOR,
     TASK_PREFIX,
-    BASE_DIR
+    BASE_DIR,
 )
 from helpers.check_user_registered import check_user_registered
 from keyboards.tasks_keyboard import InlineTaskKeyboard
@@ -25,9 +25,11 @@ from redis_helpers.global_constants import OFFSET_SUFFIX
 from redis_helpers.helpers import RedisHelper
 from states.helper import Helper
 from states.offset_state import OffsetState, TimeOffsetValidator
-from task_message_analyze.exceptions import (PatternNotFoundException,
-                                             UnitOfTimeDoesNotFoundException,
-                                             TimeToRemindDoesNotSetException)
+from task_message_analyze.exceptions import (
+    PatternNotFoundException,
+    UnitOfTimeDoesNotFoundException,
+    TimeToRemindDoesNotSetException,
+)
 from task_message_analyze.patterns import EnumPattern
 from task_message_analyze.task_text_analyze import TaskTextAnalyze
 from user_task_handler import UserTask
