@@ -2,7 +2,8 @@ import calendar
 from decimal import Decimal
 from datetime import timedelta
 from datetime import datetime
-from typing import Union
+from typing import Union, Dict, Tuple, List
+import logging
 
 from .required_task_keywords import TASK, REMIND
 from .exceptions import (
@@ -76,18 +77,16 @@ class TaskTextAnalyze:
         if self.pattern == EnumPattern.EVERY:
             self.is_regular_remind = True
 
-    def get_data_for_task(self) -> dict[str, Union[str, bool, int]]:
+    def get_data_for_task(self) -> Dict[str, Union[str, bool, int]]:
         _data = {
             'description': self.task_description,
             'is_regular_remind': self.is_regular_remind,
             'time_to_remind': self.time_to_remind,
-            # 'wait': self.time_to_remind - time(),
-            # 'human_readable_datetime': datetime.fromtimestamp(self.time_to_remind).strftime('%c')
         }
         return _data
 
     @staticmethod
-    def _split_string_by_separators(*, _data: str, separators: tuple[str] = DEFAULT_DATE_SEPARATORS) -> list[str]:
+    def _split_string_by_separators(*, _data: str, separators: Tuple[str] = DEFAULT_DATE_SEPARATORS) -> List[str]:
         whitespace = ' '
         for separator in separators:
             _data = _data.replace(separator, whitespace)
@@ -170,8 +169,8 @@ class TaskTextAnalyze:
 
         self.time_to_remind = _timedelta
         if self.time_to_remind is None:
-            # TODO добавить логгер тут
             additional_info = f'User message was: {self.text}'
+            logging.error(additional_info)
             raise TimeToRemindDoesNotSetException(additional_info=additional_info)
 
     @staticmethod
