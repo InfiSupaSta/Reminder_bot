@@ -29,6 +29,7 @@ from task_message_analyze.exceptions import (
     PatternNotFoundException,
     UnitOfTimeDoesNotFoundException,
     TimeToRemindDoesNotSetException,
+    IncorrectUserMessageException,
 )
 from task_message_analyze.patterns import EnumPattern
 from task_message_analyze.task_text_analyze import TaskTextAnalyze
@@ -280,7 +281,12 @@ async def handle_user_message(message: types.Message,
             task_text_analyzer = TaskTextAnalyze(user_message=message.text)
             task_text_analyzer.analyze()
             task_data = task_text_analyzer.get_data_for_task()
-        except (PatternNotFoundException, UnitOfTimeDoesNotFoundException, TimeToRemindDoesNotSetException):
+        except (
+                PatternNotFoundException,
+                UnitOfTimeDoesNotFoundException,
+                TimeToRemindDoesNotSetException,
+                IncorrectUserMessageException,
+        ):
             info_message = 'Can not find pattern for parse your task message.\n' \
                            'Please use /help and /start for more info about tasks structure.'
             return await message.answer(info_message)
@@ -294,9 +300,11 @@ async def handle_user_message(message: types.Message,
         else:
             request_body = {
                 'telegram_id': request_user_id,
-                'pure_api_response': True  # for getting a response(JSON, or int in this case) from API and
+
+                # for getting a response(JSON, or int in this case) from API and
                 # not the data based on status code of response. More details in
                 # ./api_related_things/api_request.py module
+                'pure_api_response': True
             }
             offset_request = ApiRequest(
                 url=ApiEndpoint.OFFSET_USER,
