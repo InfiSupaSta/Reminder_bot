@@ -40,6 +40,9 @@ class TestTextAnalyze(unittest.TestCase):
             EnumPattern.IN
         )
 
+    def test_correct_message_with_every_pattern(self):
+        ...
+
 
 if __name__ == '__main__':
     unittest.main()
