@@ -27,3 +27,7 @@ class TimeToRemindDoesNotSetException(TaskException):
 
     def __init__(self, additional_info: str = None):
         super().__init__(additional_info)
+
+
+class IncorrectUserMessageException(TaskException):
+    info_message = "User input does not contain bot of keywords: 'remind' and 'task'."

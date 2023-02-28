@@ -5,7 +5,12 @@ from datetime import datetime
 from typing import Union
 
 from .required_task_keywords import TASK, REMIND
-from .exceptions import PatternNotFoundException, UnitOfTimeDoesNotFoundException, TimeToRemindDoesNotSetException
+from .exceptions import (
+    PatternNotFoundException,
+    UnitOfTimeDoesNotFoundException,
+    TimeToRemindDoesNotSetException,
+    IncorrectUserMessageException,
+)
 from .patterns import COMPILED_PATTERN_HASHMAP, EnumPattern
 
 DEFAULT_DATE_SEPARATORS = (':', '-', '.')
@@ -187,7 +192,8 @@ class TaskTextAnalyze:
             raise UnitOfTimeDoesNotFoundException()
 
     def analyze(self) -> None:
-        self.check_user_message_is_correct()
+        if not self.check_user_message_is_correct():
+            raise IncorrectUserMessageException()
         self.get_message_pattern()
         self.check_is_task_regular()
         self._set_description()
