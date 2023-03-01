@@ -3,7 +3,7 @@ import sys
 import pathlib
 
 sys.path.append(
-    pathlib.Path(__file__).parent.parent.as_posix()
+    pathlib.Path(__file__).parent.parent.parent.as_posix()
 )
 
 from bot.task_message_analyze.task_text_analyze import TaskTextAnalyze
