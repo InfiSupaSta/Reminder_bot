@@ -36,7 +36,7 @@ async def update_user(user: UserSchema, time_offset: str):
 
 
 @user_router.get("/me")
-async def create_user(user: UserSchema):
+async def check_user_exists(user: UserSchema):
     return UserRepository().check_user_exists(telegram_id=user.telegram_id)
 
 

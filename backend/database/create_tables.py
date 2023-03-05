@@ -1,7 +1,6 @@
 from backend.database.base import Base
 from backend.database.engine import engine
 from backend.logger import Logger
-from backend.database.models import *
 
 __all__ = [
     'create_metadata_tables',
