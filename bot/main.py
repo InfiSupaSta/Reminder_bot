@@ -247,7 +247,7 @@ async def delete_task_callback(callback: types.CallbackQuery, tasks: UserTasksCo
         )
     except Exception as exception:
         logger.error(f'Raised during task deletion by user request :: {str(exception)}')
-        await callback.message.answer(f'Something going wrong.')
+        await callback.message.answer('Something going wrong.')
 
 
 @dp.message_handler(state='*')
