@@ -14,3 +14,9 @@ def b(c,d,e):
 
 
 
+def BadNamedFunction():
+    Ellipsis
+
+
+
+
