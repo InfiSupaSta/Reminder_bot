@@ -43,7 +43,7 @@ def catch_exceptions(function: typing.Callable[[typing.Any], typing.Awaitable[ty
             return await function(*args, **kwargs)
         except Exception as exception:
             logger.error(f'Exception raised during API Request. Info: {exception.args}')
-            message = f'Something going wrong. Please try again later or contact to developer.'
+            message = 'Something going wrong. Please try again later or contact to developer.'
             return message
 
     return wrapper
