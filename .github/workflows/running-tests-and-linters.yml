@@ -1,0 +1,26 @@
+name: "Running project tests and linters"
+on:
+  push:
+  pull_request:
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.9", "3.10", "3.11" ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Preparing Python ${{ matrix.python-version }} for tests
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Running tests
+        run: |
+          python -m unittest discover ./tests
+      - name: Install flake8
+        run: |
+          pip install flake8
+      - name: Running Flake8
+        run: |
+          python -m flake8 ./backend ./bot ./tests
