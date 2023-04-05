@@ -1,6 +1,4 @@
 import asyncio
-import datetime
-import http
 import logging
 
 from aiogram import types
@@ -15,26 +13,17 @@ from examples.tasks_pattern_examples import TaskPatternExample
 from global_constants import (
     CALLBACK_DELETE_TASK_PREFIX,
     SEPARATOR,
-    TASK_PREFIX,
     BASE_DIR,
 )
-from helpers.check_user_registered import check_user_registered
 from keyboards.tasks_keyboard import InlineTaskKeyboard
 from on_startup import on_startup
-from redis_helpers.global_constants import OFFSET_SUFFIX
-from redis_helpers.helpers import RedisHelper
+from services.handle_user_input.message_handler import HandleUserMessage
 from states.helper import Helper
 from states.offset_state import OffsetState, TimeOffsetValidator
-from task_message_analyze.exceptions import (
-    PatternNotFoundException,
-    UnitOfTimeDoesNotFoundException,
-    TimeToRemindDoesNotSetException,
-    IncorrectUserMessageException,
-)
-from task_message_analyze.patterns import EnumPattern
-from task_message_analyze.task_text_analyze import TaskTextAnalyze
-from user_task_handler import UserTask
+from user_tasks_container.base_container import BaseTasksContainer
 from user_tasks_container.tasks_container import UserTasksContainer
+from utils.check_user_registered import check_user_registered
+from utils.redis_helper.core import RedisHelper
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,7 +37,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__file__)
 
-container = UserTasksContainer()
+tasks_container = UserTasksContainer()
 
 
 @dp.message_handler(commands=['start'])
@@ -63,11 +52,11 @@ async def get_start_command(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def get_help_command(message: types.Message):
-    info_message = 'To start interacting with bot first of all you need to register by using /register command.' \
-                   'This will give opportunity for creating tasks personally for you. \n' \
-                   'Next step is setting up your timezone offset by using /set_user_time_offset command.\n' \
-                   'After that you can add tasks for reminding according to this pattern: \n ' \
-                   'REMIND [date, day, in/every ** minutes/hours] TASK [task_description]\n' \
+    info_message = 'To start interacting with bot first of all you need to register by using /register command. ' \
+                   'This will give opportunity for creating tasks personally for you.\n\n' \
+                   'Next step is setting up your timezone offset by using /set_user_time_offset command.\n\n' \
+                   'After that you can add tasks for reminding according to this pattern:\n' \
+                   'REMIND [date, day, in/every ** minutes/hours] TASK [task_description]\n\n' \
                    'Examples here: /examples'
     return await message.answer(info_message)
 
@@ -187,7 +176,7 @@ async def set_user_time_offset(message: types.Message):
 
 
 @dp.message_handler(commands=['tasks'])
-async def get_tasks_command(message: types.Message, tasks: UserTasksContainer = container):
+async def get_tasks_command(message: types.Message, tasks: BaseTasksContainer = tasks_container):
     """
     Function to get existing user tasks. It will be formed into inline buttons.
     Pressing onto them will delete this tasks from list.
@@ -210,11 +199,12 @@ async def get_tasks_command(message: types.Message, tasks: UserTasksContainer = 
         user_telegram_id=user_telegram_id
     )
 
-    await message.reply(text='Here is your tasks!', reply_markup=keyboard.get_keyboard())
+    response_message = 'Here is your tasks! You can click on task to delete it.'
+    await message.reply(text=response_message, reply_markup=keyboard.get_keyboard())
 
 
 @dp.callback_query_handler(lambda callback: callback.data.startswith(CALLBACK_DELETE_TASK_PREFIX))
-async def delete_task_callback(callback: types.CallbackQuery, tasks: UserTasksContainer = container):
+async def delete_task_callback(callback: types.CallbackQuery, tasks: UserTasksContainer = tasks_container):
     """
     Callback that will be called when button in /tasks command is pressed.
     """
@@ -246,123 +236,33 @@ async def delete_task_callback(callback: types.CallbackQuery, tasks: UserTasksCo
             reply_markup=types.InlineKeyboardMarkup()
         )
     except Exception as exception:
-        logger.error(f'Raised during task deletion by user request :: {str(exception)}')
+        logger.error(f'Raised during task deletion by user {callback.message.from_user.id} request :: {str(exception)}')
         await callback.message.answer('Something going wrong.')
 
 
 @dp.message_handler(state='*')
 async def handle_user_message(message: types.Message,
                               state: FSMContext,
-                              tasks_container: UserTasksContainer = container):
+                              tasks_container: UserTasksContainer = tasks_container):
     """
     Main function to handle user messages that do not match commands(except /cancel,
     that will work only of FSM state is not None and user want to abandon current action).
     """
 
-    current_state = await state.get_state()
-    if current_state is not None:
-        if message.is_command() and message.text == '/cancel':
-            return await state.set_state(None)
+    message_handler = HandleUserMessage(message, state)
 
-        info_message = f'Probably your input is incorrect or another action is running.\n' \
-                       f'State: {Helper.state.get(current_state)}\n' \
-                       f'Possible action: {Helper.action.get(current_state)}\n' \
-                       f'Or use /cancel to stop it.'
-        return await message.answer(info_message)
+    if await message_handler.get_current_fsm_state() is not None:
+        return await message_handler.handle_state()
 
-    if message.text.lower().startswith(TASK_PREFIX):
+    if not message_handler.check_if_input_is_task():
+        error_message = 'Unrecognized command, use /help  or side menu for info.'
+        return await message.answer(error_message)
 
-        status_code, _ = await check_user_registered(user_id=message.from_user.id)
-        if status_code != http.HTTPStatus.OK:
-            error_message = 'Please register (/register command) before any actions with task creating.'
-            return await message.answer(error_message)
+    if not await check_user_registered(user_id=message.from_user.id, status_code_only=True):
+        error_message = 'Please register (/register command) before any actions with task creating.'
+        return await message.answer(error_message)
 
-        try:
-            task_text_analyzer = TaskTextAnalyze(user_message=message.text)
-            task_text_analyzer.analyze()
-            task_data = task_text_analyzer.get_data_for_task()
-        except (
-                PatternNotFoundException,
-                UnitOfTimeDoesNotFoundException,
-                TimeToRemindDoesNotSetException,
-                IncorrectUserMessageException,
-        ):
-            info_message = 'Can not find pattern for parse your task message.\n' \
-                           'Please use /help and /start for more info about tasks structure.'
-            return await message.answer(info_message)
-
-        request_user_id = message.from_user.id
-
-        redis_client = RedisHelper()
-        user_key_with_offset = f'{request_user_id}{OFFSET_SUFFIX}'
-        if redis_client.check_key_exists(key=user_key_with_offset):
-            offset = redis_client.get_key_value(key=user_key_with_offset)
-        else:
-            request_body = {
-                'telegram_id': request_user_id,
-
-                # for getting a response(JSON, or int in this case) from API and
-                # not the data based on status code of response. More details in
-                # ./api_related_things/api_request.py module
-                'pure_api_response': True
-            }
-            offset_request = ApiRequest(
-                url=ApiEndpoint.OFFSET_USER,
-                tag=Tag.USER,
-                method=ApiMethod.GET,
-                **request_body
-            )
-            offset = await offset_request.send()
-            redis_client.set_user_offset(user_id=request_user_id, offset=offset)
-
-        offset = float(offset)
-
-        if task_text_analyzer.pattern not in [EnumPattern.IN, EnumPattern.EVERY]:
-            # We dont need to do anything else to remind time
-            # if task is regular or user is not manually gave task time.
-            # Otherwise user offset must be handled.
-
-            task_data['time_to_remind'] -= offset
-
-        if task_text_analyzer.pattern == EnumPattern.TOMORROW:
-            # Due to date calculation for this pattern based on
-            # UTC time, we must sure that final time to remind must be
-            # formed on user timezone.
-
-            # For example: user offset is +7 hours and his current time is 0:30 of 10 january.
-            # User planned to make a task with tomorrow pattern. Obvious it should ends 11 january.
-            # But for python program task init time will be 17:30 of 9 january - this is UTC time,
-            # so without check below final date will be 10 january - this is wrong.
-            if datetime.datetime.now().hour + offset > 24:
-                task_data['time_to_remind'] += 24 * 60 * 60
-
-        create_task_request = ApiRequest(
-            url=ApiEndpoint.CREATE_TASK,
-            tag=Tag.TASK,
-            method=ApiMethod.POST,
-            user_id=request_user_id,
-            **task_data
-        )
-        response = await create_task_request.send()
-
-        request_user_tasks = tasks_container.get_user_tasks(user_telegram_id=request_user_id)
-        if task_data.get('description') in request_user_tasks:
-            info_message = f'Task with name "{task_data.get("description")}" already exists.'
-            return await message.answer(info_message)
-
-        UserTask.add_user_task_to_container(
-            task_description=task_data.get('description'),
-            user_tasks=request_user_tasks
-        )
-
-        await message.answer(response)
-        await UserTask.handle_user_task(
-            message=message,
-            **task_data
-        )
-        request_user_tasks.pop(task_data.get('description'))
-    else:
-        await message.answer('Unrecognized command, use /help  or side menu for info.')
+    return await message_handler.handle_task(storage=tasks_container)
 
 
 async def main():

@@ -4,7 +4,7 @@ from typing import List
 from aiogram import Dispatcher, types
 
 from commands import bot_commands
-from helpers.create_logs_dir import ensure_logs_dir_exists
+from utils.create_logs_dir import ensure_logs_dir_exists
 
 logger = logging.getLogger(__file__)
 
