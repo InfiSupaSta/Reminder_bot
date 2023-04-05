@@ -7,7 +7,7 @@ sys.path.append(
 )
 
 from bot.services.task_message_analyze.task_text_analyze import TaskTextAnalyze
-from bot.services.task_message_analyze import IncorrectUserMessageException
+from bot.services.task_message_analyze.exceptions import IncorrectUserMessageException
 from bot.services.task_message_analyze.patterns import EnumPattern
 
 
