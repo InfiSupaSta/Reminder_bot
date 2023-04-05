@@ -15,7 +15,7 @@ from api_related_info import (
 logger = logging.getLogger(__file__)
 
 
-class UserTask:
+class TaskHandler:
 
     @staticmethod
     async def delete_user_task_when_done(
@@ -74,7 +74,7 @@ class UserTask:
             await asyncio.sleep(time_to_remind - time())
             await message.answer(description)
 
-        await UserTask.delete_user_task_when_done(
+        await TaskHandler.delete_user_task_when_done(
             user_id=message.from_user.id,
             task_name=description
         )

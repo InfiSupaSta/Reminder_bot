@@ -13,10 +13,10 @@ class ResponseMessage:
             201: 'Registration successful! Now you can interact with bot and add tasks '
                  '(use /help for details).',
             204: 'All info was successfully deleted from database. Hope you come back! :)',
-            400: 'Something went wrong:\n'
+            400: 'Something went wrong:\n\n'
                  '- for register option: are you sure that you are not already registered?\n'
                  '- for deleting data: more likely data is already deleted, but you can use /am_i_still_registered '
-                 'command for check.\n'
+                 'command for check.\n\n'
                  'If problem still exists, please open issue on github or send ticket to creator by using /ticket '
                  'command.',
             200: 'Success.',
@@ -24,7 +24,7 @@ class ResponseMessage:
         },
 
         'task': {
-            201: 'Task successfully added.',
+            201: 'Task successfully added. You can see all your tasks in /tasks',
             204: 'Task successfully deleted.',
             400: 'Something going wrong, please try one more time.',
             422: 'API error: unprocessable entity.'

@@ -6,9 +6,9 @@ sys.path.append(
     pathlib.Path(__file__).parent.parent.parent.as_posix()
 )
 
-from bot.task_message_analyze.task_text_analyze import TaskTextAnalyze
-from bot.task_message_analyze.exceptions import IncorrectUserMessageException
-from bot.task_message_analyze.patterns import EnumPattern
+from bot.services.task_message_analyze.task_text_analyze import TaskTextAnalyze
+from bot.services.task_message_analyze.exceptions import IncorrectUserMessageException
+from bot.services.task_message_analyze.patterns import EnumPattern
 
 
 class TestTextAnalyze(unittest.TestCase):

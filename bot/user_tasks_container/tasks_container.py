@@ -1,8 +1,10 @@
 from collections import defaultdict
 from typing import Dict
 
+from user_tasks_container.base_container import BaseTasksContainer
 
-class UserTasksContainer:
+
+class UserTasksContainer(BaseTasksContainer):
 
     def __init__(self):
         self.users = defaultdict(dict)

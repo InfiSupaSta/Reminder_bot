@@ -5,5 +5,5 @@ from .user_model import *
 __all__ = [
     'Task',
     'User',
-    'User',
+    'TimeOffset',
 ]
